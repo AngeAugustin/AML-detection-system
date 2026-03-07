@@ -1,0 +1,392 @@
+You are a senior Machine Learning Architect and AML expert tasked with building a **production-grade Anti-Money Laundering (AML) detection system**.
+
+The goal is to implement a **robust AI system that detects the probability that a banking client is involved in money laundering or terrorist financing based on their historical transaction behavior**.
+
+The system must be designed like a **modern fintech AML platform**, combining anomaly detection, supervised learning, graph analytics, and explainable AI.
+
+The project must be **production-ready, modular, and scalable**.
+
+---
+
+# PROJECT OBJECTIVE
+
+Build a system that:
+
+1. Receives **historical transaction data for a client**
+2. Computes a **Money Laundering Risk Probability**
+3. Clearly **explains the reasons for the risk**
+4. Proposes **recommended AML actions**
+5. Exposes the functionality through a **real-time API**
+
+The model must detect:
+
+* Money laundering
+* Terrorist financing
+* Structuring / smurfing
+* Transaction layering
+* Suspicious transaction loops
+* Mule accounts
+* Abnormal behavioral patterns
+
+---
+
+# OUTPUT REQUIRED
+
+For each client:
+
+Return a JSON response:
+
+{
+"client_id": "...",
+"aml_risk_score": 0.87,
+"risk_level": "HIGH",
+"explanations": [
+"Unusual increase in transaction volume",
+"Frequent transfers to high-risk countries",
+"Multiple rapid transfers between linked accounts"
+],
+"detected_patterns": [
+"possible_structuring",
+"transaction_layering"
+],
+"recommended_actions": [
+"flag_for_manual_review",
+"enhanced_due_diligence",
+"monitor_future_transactions"
+]
+}
+
+---
+
+# SYSTEM ARCHITECTURE
+
+The AML system must implement the following architecture:
+
+Feature Engineering
++
+Isolation Forest
++
+XGBoost
++
+Graph Analysis
++
+AutoEncoder
+↓
+AML Risk Score
+
+Each module must produce a score that contributes to a final AML risk score.
+
+---
+
+# DATA SOURCES
+
+Use realistic banking data structure inspired by **European and African banking systems**.
+
+Transaction dataset columns:
+
+transaction_id
+client_id
+sender_account
+receiver_account
+amount
+currency
+timestamp
+country_origin
+country_destination
+transaction_type
+channel (ATM, online, branch)
+merchant_category
+is_cash_transaction
+device_id
+
+Client dataset columns:
+
+client_id
+age
+gender
+nationality
+country_residence
+occupation
+income_range
+account_open_date
+pep_flag
+risk_country_flag
+
+---
+
+# FEATURE ENGINEERING
+
+Implement advanced financial behavioral features.
+
+Categories:
+
+Transaction behavior:
+
+* total_transactions
+* avg_transaction_amount
+* max_transaction_amount
+* transaction_variance
+* daily_transaction_frequency
+
+Temporal patterns:
+
+* night_transactions
+* weekend_transactions
+* sudden_activity_spike
+
+AML indicators:
+
+* number_of_cash_deposits
+* international_transfer_ratio
+* structuring_indicator
+* rapid_transaction_sequences
+
+Geographic risk:
+
+* transfers_to_high_risk_countries
+* number_of_destination_countries
+
+Network features:
+
+* number_of_connected_accounts
+* transaction_cycles
+* graph_centrality_score
+
+---
+
+# MACHINE LEARNING MODELS
+
+Implement the following models.
+
+## Isolation Forest
+
+Purpose:
+detect behavioral anomalies without labels.
+
+Output:
+anomaly_score
+
+---
+
+## XGBoost Classifier
+
+Purpose:
+detect known suspicious patterns.
+
+Use synthetic labels and public datasets to simulate training.
+
+Output:
+fraud_probability
+
+---
+
+## AutoEncoder (Deep Learning)
+
+Purpose:
+learn normal financial behavior and detect deviations.
+
+Architecture:
+
+input layer
+encoder layers
+latent space
+decoder layers
+
+Output:
+
+reconstruction_error
+
+---
+
+# GRAPH ANALYSIS
+
+Build a **transaction network graph**:
+
+Nodes:
+bank accounts
+
+Edges:
+transactions
+
+Use graph analytics to detect suspicious structures.
+
+Implement:
+
+* degree centrality
+* pagerank
+* community detection
+* transaction loops
+* graph embeddings (Node2Vec)
+
+Output:
+
+graph_risk_score
+
+---
+
+# SCORE FUSION
+
+Combine model outputs:
+
+aml_score =
+0.30 * anomaly_score
++
+0.30 * xgboost_score
++
+0.20 * graph_score
++
+0.20 * autoencoder_score
+
+Normalize score between 0 and 1.
+
+Define risk levels:
+
+0 – 0.3 → LOW
+0.3 – 0.7 → MEDIUM
+0.7 – 1 → HIGH
+
+---
+
+# EXPLAINABLE AI
+
+Implement explainability using:
+
+* SHAP
+* Feature importance
+
+The system must produce human-readable explanations for why a client was flagged.
+
+---
+
+# ACTION RECOMMENDATION ENGINE
+
+Based on the AML score, generate actions:
+
+LOW
+monitor client
+
+MEDIUM
+enhanced monitoring
+
+HIGH
+manual investigation
+file suspicious activity report
+
+---
+
+# API IMPLEMENTATION
+
+Build a **FastAPI REST API**.
+
+Endpoints:
+
+POST /analyze-client
+
+Input:
+
+client_id
+transaction_history
+
+Output:
+
+AML risk score
+explanations
+detected patterns
+recommended actions
+
+---
+
+# REAL-TIME INFERENCE
+
+The system must support:
+
+real-time analysis when data is sent to the API.
+
+---
+
+# DATASETS
+
+The project must include:
+
+1. synthetic AML dataset generator
+2. integration with a public dataset (for example financial fraud dataset)
+
+---
+
+# PROJECT STRUCTURE
+
+Create a professional repository structure.
+
+aml_detection_system/
+
+data/
+synthetic_generator.py
+
+features/
+feature_engineering.py
+
+models/
+isolation_forest.py
+xgboost_model.py
+autoencoder.py
+
+graph/
+graph_builder.py
+graph_features.py
+
+scoring/
+risk_scoring.py
+
+explainability/
+shap_explainer.py
+
+actions/
+action_engine.py
+
+api/
+main.py
+
+training/
+train_pipeline.py
+
+utils/
+
+requirements.txt
+README.md
+
+---
+
+# TECHNOLOGY STACK
+
+Python
+
+Libraries:
+
+pandas
+numpy
+scikit-learn
+xgboost
+pytorch
+networkx
+node2vec
+shap
+fastapi
+uvicorn
+
+---
+
+# CODE REQUIREMENTS
+
+The code must be:
+
+* modular
+* production-grade
+* well documented
+* type hinted
+* optimized for scalability
+
+---
+
+# FINAL GOAL
+
+The system should simulate a **modern AML SaaS platform** capable of detecting suspicious financial behavior with high accuracy and explainability.

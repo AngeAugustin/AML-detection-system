@@ -1,0 +1,24 @@
+{
+  "feature_names": [
+    "total_transactions",
+    "avg_transaction_amount",
+    "max_transaction_amount",
+    "transaction_variance",
+    "daily_transaction_frequency",
+    "night_transactions",
+    "weekend_transactions",
+    "sudden_activity_spike",
+    "number_of_cash_deposits",
+    "international_transfer_ratio",
+    "structuring_indicator",
+    "rapid_transaction_sequences",
+    "transfers_to_high_risk_countries",
+    "number_of_destination_countries",
+    "unique_devices",
+    "unique_counterparties",
+    "age",
+    "pep_flag",
+    "risk_country_flag",
+    "income_range_ord"
+  ]
+}
