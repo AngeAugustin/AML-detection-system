@@ -1,4 +1,10 @@
-num_clients=500
-num_transactions=69072
+dataset=synthetic
+num_clients=2000
+num_transactions=270981
 features=20
 suspicious_rate=0.1200
+
+test_metrics:
+  accuracy=0.9800
+  f1=0.9200
+  roc_auc=0.9906

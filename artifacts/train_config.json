@@ -1,0 +1,11 @@
+{
+  "dataset": "synthetic",
+  "feature_count": 20,
+  "num_clients": 2000,
+  "num_transactions": 270981,
+  "seed": 42,
+  "suspicious_rate": 0.12,
+  "test_clients": 400,
+  "test_size": 0.2,
+  "train_clients": 1600
+}

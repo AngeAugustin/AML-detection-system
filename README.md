@@ -4,7 +4,7 @@ This repository implements a modular Anti-Money Laundering (AML) detection syste
 
 - Feature engineering (client behavioral, temporal, geographic, AML indicators, network features)
 - Isolation Forest anomaly score
-- XGBoost supervised score (synthetic labels + optional public dataset adapter)
+- XGBoost supervised score (synthetic labels + **Credit Card Fraud** public dataset)
 - AutoEncoder reconstruction score (deep anomaly detection)
 - Graph analytics score (centrality, pagerank, communities, loops, optional Node2Vec)
 - Score fusion + explainable AI (SHAP + feature importance fallback)
@@ -17,6 +17,8 @@ aml_detection_system/
   __init__.py
 data/
   synthetic_generator.py
+  creditcard_adapter.py
+  dataset_loader.py
 features/
   feature_engineering.py
 models/
@@ -36,10 +38,12 @@ api/
   main.py
 training/
   train_pipeline.py
+  train_config.py
 utils/
   config.py
   io.py
   registry.py
+  validation.py
 artifacts/
 requirements.txt
 README.md
@@ -53,13 +57,33 @@ README.md
 python -m pip install -r requirements.txt
 ```
 
-### 2) Train models (synthetic AML dataset)
+### 2) Train models
 
-This generates synthetic client + transaction data, builds feature matrices, trains all models, fits normalizers, and writes artifacts into `./artifacts`.
+**Option A — Données synthétiques (recommandé)**  
+Génère clients et transactions avec patterns AML, entraîne les modèles et écrit les artefacts. Avec `--test-size 0.2`, un split train/test est appliqué et les métriques test sont enregistrées.
 
 ```bash
-python -m training.train_pipeline --output artifacts --seed 42 --num-clients 2000
+python -m training.train_pipeline --output artifacts --seed 42 --num-clients 2000 --test-size 0.2
 ```
+
+**Option B — Dataset public Credit Card Fraud (ULB)**  
+[Credit Card Fraud Detection](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud) (MLG-ULB) : transactions de cartes bancaires anonymisées (~284k transactions, labels fraude). Référence encore disponible sur Kaggle.
+
+1. Téléchargez le CSV sur Kaggle : [Credit Card Fraud Detection](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud) (fichier `creditcard.csv`).
+2. Placez le fichier dans le projet (ex. `data/creditcard.csv`).
+3. Entraînement avec split train/test (80/20) et métriques sur l’ensemble de test :
+
+```bash
+python -m training.train_pipeline --dataset creditcard --data-path data/creditcard.csv --output artifacts --test-size 0.2
+```
+
+Pour un premier test rapide, limitez le nombre de transactions :
+
+```bash
+python -m training.train_pipeline --dataset creditcard --data-path data/creditcard.csv --max-transactions 50000 --output artifacts --test-size 0.2
+```
+
+Les métriques (accuracy, F1, ROC-AUC) sont enregistrées dans `artifacts/train_summary.txt`.
 
 ### 3) Start the API
 
@@ -100,6 +124,98 @@ Expected response shape:
   ]
 }
 ```
+
+### 5) Branch an external transactions API (streaming findings)
+
+Start external ingestion (polling with cursor):
+
+```bash
+curl -X POST http://localhost:8000/external/start ^
+  -H "Content-Type: application/json" ^
+  -d "{\"base_url\":\"https://your-external-api.com\",\"endpoint\":\"/transactions\",\"auth_token\":\"YOUR_TOKEN\",\"poll_interval_seconds\":5,\"limit\":200,\"cursor_param\":\"cursor\",\"limit_param\":\"limit\",\"initial_cursor\":\"\"}"
+```
+
+Check ingestion status:
+
+```bash
+curl http://localhost:8000/external/status
+```
+
+Read findings generated continuously:
+
+```bash
+curl "http://localhost:8000/findings?limit=50"
+```
+
+Stop ingestion:
+
+```bash
+curl -X POST http://localhost:8000/external/stop
+```
+
+External API expected response (one of):
+
+- `[{...transaction...}, {...transaction...}]`
+- `{"transactions":[{...}, {...}], "next_cursor":"abc123"}`
+
+Each transaction object should match the same fields as `TransactionIn` (`transaction_id`, `client_id`, `amount`, `timestamp`, etc.).
+
+### 6) Mock external API for integration tests
+
+Run a local external API with an enlarged dataset (6000 tx, mixed normal + suspicious):
+
+```bash
+python -m uvicorn api.mock_external:app --host 0.0.0.0 --port 8010
+```
+
+Quick check:
+
+```bash
+curl "http://localhost:8010/transactions?cursor=&limit=5"
+```
+
+Then connect AML API to this mock source:
+
+```bash
+curl -X POST http://localhost:8000/external/start ^
+  -H "Content-Type: application/json" ^
+  -d "{\"base_url\":\"http://localhost:8010\",\"endpoint\":\"/transactions\",\"poll_interval_seconds\":2,\"limit\":200,\"cursor_param\":\"cursor\",\"limit_param\":\"limit\",\"initial_cursor\":\"\"}"
+```
+
+Read findings as they are produced:
+
+```bash
+curl "http://localhost:8000/findings?limit=20"
+```
+
+## Stratégie dataset idéal
+
+Pour un **entraînement et une efficacité optimaux**, le pipeline est conçu pour le **dataset synthétique** (`--dataset synthetic`), qui est le choix par défaut et recommandé :
+
+- **Alignement parfait** : le feature engineering (comportement client, géographie, structuring, layering, boucles) exploite des champs que le générateur produit explicitement (pays, types de tx, montants, séquences). Les modèles apprennent des signaux AML cohérents.
+- **Reproductibilité** : même seed → mêmes données ; split train/test possible (`--test-size 0.2`) pour évaluation stricte.
+- **Contrôle du déséquilibre** : `suspicious_rate` configurable (défaut 12 %) pour éviter un déséquilibre extrême.
+
+Le **dataset Credit Card (ULB)** est proposé comme **benchmark public** uniquement : pas d’identifiant client (pseudo-clients par blocs), pas de géographie ni de types de transaction réels. Le pipeline applique le même schéma, mais le signal est surtout montant/temps ; utiliser le synthétique pour des résultats représentatifs.
+
+| Source | Rôle | Usage |
+|--------|------|--------|
+| **Synthetic** | **Recommandé** — idéal pour ce pipeline | `--dataset synthetic` (défaut), optionnel `--test-size 0.2` |
+| **Credit Card (ULB)** | Benchmark public | `--dataset creditcard --data-path <fichier.csv>` |
+
+## Reproductibilité
+
+Chaque entraînement enregistre dans `artifacts/` :
+
+- `train_config.json` : dataset, seed, nombre de clients/transactions, test_size, taux de fraude. Permet de refaire exactement la même run.
+- `train_summary.txt` : métriques (dont test si split activé).
+
+L’argument `--output` est validé (pas de path traversal) ; les arguments numériques (seed, test_size, num_clients, etc.) sont bornés.
+
+## Sécurité
+
+- **CLI** : chemins de sortie limités au répertoire du projet ; bornes sur seed, test_size, num_clients, max_transactions.
+- **API** : validation Pydantic sur les requêtes (montant ≥ 0 et ≤ seuil, longueur des chaînes, nombre max de transactions par requête). Aucune désérialisation non sécurisée (pas de `pickle` chargé depuis l’extérieur).
 
 ## Installation notes
 
